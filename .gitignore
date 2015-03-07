@@ -1,0 +1,6 @@
+*.out
+*.o
+*.png
+*.jpeg
+*.jpg
+.DS_STORE

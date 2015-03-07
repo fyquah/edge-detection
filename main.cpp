@@ -1,4 +1,5 @@
 #include "lodepng/lodepng.h"
+#include "jpeg/jpeg.h"
 #include <math.h>
 #include <assert.h>
 #include <iostream>

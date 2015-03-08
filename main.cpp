@@ -12,143 +12,151 @@ using std::endl;
 
 namespace MASK {
     const int x[3][3] = {
-        { -10, 0, 10 },
-        { -3, 0, 3 },
-        { -10, 0, 10 }
+        { -2, 0, 2 },
+        { -1, 0, 1 },
+        { -2, 0, 2 }
     };
     const int y[3][3] = {
-        { -10, -3, -10 },
+        { -2, -1, -2 },
         { 0, 0, 0 },
-        { 10, 3, 10 }
+        { 2, 1, 2 }
     };
 }
 
-void encode_grayscale(const std::vector< std::vector<byte> > & output, unsigned width, unsigned height, const char * filename);
-void find_edge(const char* input_filename, const char * output_filename);
-std::pair<int, int> convolute(int y, int x, const std::vector<std::vector<byte> > & pixels);
+void binarify_edge(unsigned char ** grayscale, const int height, const int width, const int threshold);
+void evaluate_grayscale(std::vector <int **> & image, int height, int width, unsigned char ** & grayscale);
+void find_delta(unsigned char ** image, int height, int width, int ** & gy, int ** & gx);
+std::pair<int, int> convolute(int y, int x, unsigned char ** image);
 inline int magnitude(byte gx, byte gy);
-
 
 int main(int argc, char *argv[])
 {
     assert(argc >= 3 && "Expected input file name and output file name as CLI argument!!");
-    const char* input_filename = argv[1];
-    const char* output_filename = argv[2];
-    find_edge(input_filename, output_filename);
-}
+    int height, width, components_count;
+    unsigned char ** image;
+    unsigned char ** grayscale;
+    std::vector< unsigned char ** > image_components;
+    std::vector< int ** > vec_gy;
+    std::vector< int ** > vec_gx;
+    std::vector< int ** > vec_g;
 
-void encode_grayscale(const std::vector< std::vector<byte> > & output, unsigned width, unsigned height, const char * filename) {
-    std::vector<byte> image;
+    jpeg_decode(argv[1], height, width, components_count, image);
+
+    // create vector of unsigned chars
+    for(int i = 0 ; i < components_count ; i++) {
+        unsigned char ** ptr = new unsigned char * [height];
+        for(int i =0 ; i < width ; i++) {
+            ptr[i] = new unsigned char[width];
+        }
+        image_components.push_back(ptr);
+    }
+
+    // extract the components
     for(int y = 0 ; y < height ; y++) {
         for(int x = 0 ; x < width ; x++) {
-            for(int i = 0 ; i < 4 ; i++) {
-                image.push_back(output[y][x]);
+            for (int i = 0 ; i < components_count ; i++) {
+                image_components[i][y][x] = image[y][components_count * x + i];
             }
         }
     }
-    unsigned error = lodepng::encode(filename, image, width, height);
-    if(error) std::cout << "encoder error " << error << ": "<< lodepng_error_text(error) << std::endl;
+
+    for(int i = 0 ; i < height ; i++) {
+        delete[] image[i];
+    }
+    delete[] image;
+    image = NULL;
+    // N.B. : image is now undefined!
+
+    // Now we get Gx and Gy for every cell (except edge cases)
+    for(int i = 0 ; i < components_count ; i++) {
+        int ** gy;
+        int ** gx;
+        find_delta(image_components[i], height, width, gy, gx);
+        vec_gx.push_back(gx);
+        vec_gy.push_back(gy);
+    }
+
+    for(int c = 0 ; c < components_count ; c++) {
+        int ** ptr = new int *[height];
+        
+        for(int y = 0 ; y < height ; y++) {
+            ptr[y] = new int[width];
+
+            for(int x = 0 ; x < width ; x++) {
+                ptr[y][x] = magnitude(vec_gy[c][y][x], vec_gx[c][y][x]);
+            }
+        }
+
+        vec_g.push_back(ptr);
+    }
+    // vec_g now contains the magnitude of all deltas
+    evaluate_grayscale(vec_g, height, width, grayscale);
+    binarify_edge(grayscale, height, width, 250);
+    jpeg_encode_grayscale(argv[2], height, width, grayscale);
+
+    // Free the memory space!
+    for(int i = 0 ; i < height ; i++) {
+        delete[] grayscale[i];
+    }
+    delete[] grayscale;
+
+    for(int c = 0 ; c < image_components.size() ; c++) {
+        for(int i = 0 ; i < height ; i++) {
+            delete[] vec_gy[c][i];
+            delete[] vec_gx[c][i];
+            delete[] image_components[c][i];
+        }
+
+        delete[] vec_gy[c];
+        delete[] vec_gx[c];
+        delete[] image_components[c];
+    }
 }
 
-void find_edge(const char* input_filename, const char * output_filename) {
-    std::vector<unsigned char> image; //the raw pixels
-    unsigned width, height;
-    std::vector< std::vector<byte> > red;
-    std::vector< std::vector<byte> > green;
-    std::vector< std::vector<byte> > blue;
-    std::vector< std::vector<byte> > alpha;
-    std::vector< std::vector<int> > delta_x_red;
-    std::vector< std::vector<int> > delta_x_green;
-    std::vector< std::vector<int> > delta_x_blue;
-    std::vector< std::vector<int> > delta_x_alpha;
-    std::vector< std::vector<int> > delta_y_red;
-    std::vector< std::vector<int> > delta_y_green;
-    std::vector< std::vector<int> > delta_y_blue;
-    std::vector< std::vector<int> > delta_y_alpha;
-    std::vector< std::vector<byte> > output;
-    //decode
-    unsigned error = lodepng::decode(image, width, height, input_filename);
-    //if there's an error, display it
-    if(error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-
-    red.assign(height, std::vector<byte>(width));
-    green.assign(height, std::vector<byte>(width));
-    blue.assign(height, std::vector<byte>(width));
-    alpha.assign(height, std::vector<byte>(width));
-    delta_x_red.assign(height, std::vector<int>(width));
-    delta_x_green.assign(height, std::vector<int>(width));
-    delta_x_blue.assign(height, std::vector<int>(width));
-    delta_x_alpha.assign(height, std::vector<int>(width));
-    delta_y_red.assign(height, std::vector<int>(width));
-    delta_y_green.assign(height, std::vector<int>(width));
-    delta_y_blue.assign(height, std::vector<int>(width));
-    delta_y_alpha.assign(height, std::vector<int>(width));
-    output.assign(height, std::vector<byte>(width, 0));
-
-    for(int i = 0 ; i < image.size() ; ) {
-        int y = (i / 4) / width;
-        int x = (i / 4) % width;
-        red[y][x] = image[i++];
-        green[y][x] = image[i++];
-        blue[y][x] = image[i++];
-        alpha[y][x] = image[i++];
-    }
-
-    for(int y = 1 ; y < height - 1 ; y++) {
-        for(int x = 1 ; x < width - 1 ; x++) {
-            // evaluate gx on every color
-            std::pair<int, int> res = convolute(y, x, red);
-            delta_y_red[y][x] = res.first;
-            delta_x_red[y][x] = res.second;
-            // cout << y << ',' << x << endl;
-
-            // evaluate gy on every color
-            res = convolute(y, x, green);
-            delta_y_green[y][x] = res.first;
-            delta_x_green[y][x] = res.second;
-
-            res = convolute(y, x, blue);
-            delta_y_blue[y][x] = res.first;
-            delta_x_blue[y][x] = res.second;
-
-            res = convolute(y, x, alpha);
-            delta_y_alpha[y][x] = res.first;
-            delta_x_alpha[y][x] = res.second;
+void binarify_edge(unsigned char ** grayscale, const int height, const int width, const int threshold) {
+    for(int y = 0 ; y < height ; y++) {
+        for(int x = 0 ; x < width ; x++) {
+            grayscale[y][x] = (grayscale[y][x] > threshold ? 255 : 0);
         }
     }
-
-    // color-ed edges
-    // image.clear();
-    // for(int y = 0 ; y < height ; y++) {
-    //     for(int x = 0 ; x < width; x++) {
-    //         image.push_back(magnitude(delta_y_red[y][x], delta_x_red[y][x]));
-    //         image.push_back(magnitude(delta_y_green[y][x], delta_x_green[y][x]));
-    //         image.push_back(magnitude(delta_y_blue[y][x], delta_x_blue[y][x]));
-    //         image.push_back(255);
-    //     }
-    // }
-    // error = lodepng::encode("colored.png", image, width, height);
-    // if(error) std::cout << "encoder error " << error << ": "<< lodepng_error_text(error) << std::endl;
-
-    // grayscale edges
-    for(int y = 1 ; y < height - 1; y++) {
-        for(int x = 1 ; x < width - 1 ; x++) {
-            double gy, gx;
-
-            gx = delta_x_red[y][x] + delta_x_blue[y][x] + delta_x_green[y][x] + delta_x_alpha[y][x];
-            gx /= 3;
-            gy = delta_y_red[y][x] + delta_y_blue[y][x] + delta_y_green[y][x] + delta_y_alpha[y][x];
-            gy /= 3;
-            gy = (gy > 255 ? 255 : gy);
-            gx = (gx > 255 ? 255 : gx);
-            
-            output[y][x] = sqrt(gx * gx + gy * gy);    
-        }
-    }
-    encode_grayscale(output, width, height, output_filename);
 }
 
-std::pair<int, int> convolute(int y, int x, const std::vector< std::vector<byte> > & pixels){
+void evaluate_grayscale(std::vector <int **> & image, int height, int width, unsigned char ** & grayscale) {
+    grayscale = new unsigned char * [height];
+    for(int y = 0 ; y < height ; y++) {
+        grayscale[y] = new unsigned char[width];
+        for(int x = 0 ; x < width ; x++) {
+            int a = 0;
+            for(int i = 0 ; i < image.size() ; i++) {
+                a += image[i][y][x];
+            }
+            grayscale[y][x] = a / image.size();
+        }
+    }
+}
+
+void find_delta(unsigned char ** image, int height, int width, int ** & gy, int ** & gx) {
+    gy = new int * [height];
+    gx = new int * [height];
+
+    for(int y = 0 ; y < height  ; y++) {
+        gy[y] = new int[width];
+        gx[y] = new int[width];
+
+        for(int x = 0 ; x < width ; x++) {
+            if(y == 0 || x == 0 || y == height - 1 || x == width - 1 ) {
+                gy[y][x] = 0;
+                gx[y][x] = 0;
+            } else {
+                std::pair<int, int> res = convolute(y, x, image);
+                gy[y][x] = res.first;
+                gx[y][x] = res.second;
+            }
+        }
+    }
+}
+
+std::pair<int, int> convolute(int y, int x, unsigned char ** pixels){
     // Takes arguments row, column and pixel matrix
     // returns an Integer pair with the results of convolution
     int gx = 0; // important for tmp to be unsigned!!

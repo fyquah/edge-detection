@@ -1,6 +1,12 @@
+# Ignore output objects and binaries
+main
 *.out
 *.o
+
+# Ignore sample data
 *.png
 *.jpeg
 *.jpg
+
+# Ignore MAC OS X .DS_STORE
 .DS_STORE

@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <jpeglib.h>
 
-void decode_jpeg(const char * filename, int & height, int & width, int & components, unsigned char ** & matrix);
-void encode_jpeg(const char * filename, int height, int width, int components, unsigned char ** matrix);
+void jpeg_decode(const char * filename, int & height, int & width, int & components, unsigned char ** & matrix);
+void jpeg_encode(const char * filename, int height, int width, int components, unsigned char ** matrix);
+void jpeg_encode_grayscale(const char * filename, int height, int width, unsigned char ** matrix);
 
 #endif

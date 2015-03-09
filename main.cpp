@@ -105,7 +105,9 @@ int main(int argc, char *argv[])
     }
     // vec_g now contains the magnitude of all deltas
     evaluate_grayscale(vec_g, height, width, grayscale);
-    // binarify_edge(grayscale, height, width, 250);
+    if(argc >= 4) {
+        binarify_edge(grayscale, height, width, atoi(argv[3]));
+    }
 
     // encode into intended file format
     int output_file_type = get_file_type(argv[2]);

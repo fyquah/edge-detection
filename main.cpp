@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
     int output_file_type = get_file_type(argv[2]);
     switch(output_file_type) {
         case FILE_TYPE_PNG:
-        
+        png_encode_grayscale(argv[2], height, width, grayscale);
         break;
         case FILE_TYPE_JPEG:
         jpeg_encode_grayscale(argv[2], height, width, grayscale);

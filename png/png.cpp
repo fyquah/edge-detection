@@ -29,6 +29,17 @@ void png_encode(){
     // do nithing, for now
 }
 
-void png_encode_grayscale(const char * filename, int height, int width, int components, unsigned char ** matrix) {
-    
+void png_encode_grayscale(const char * filename, int height, int width, unsigned char ** matrix) {
+    std::vector<unsigned char> image;
+    for(int y = 0 ; y < height ; y++) {
+        for(int x = 0 ; x < width ; x++) {
+            for(int i = 0 ; i < PNG_NUMBER_COMPONENTS ;i++) {
+                image.push_back(matrix[y][x]);
+            }
+        }
+    }
+    unsigned error = lodepng::encode(filename, image, width, height);
+    if(error) {
+        fprintf(stderr, "Encoder error: %d : %s", error, lodepng_error_text(error));
+    } 
 }

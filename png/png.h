@@ -10,6 +10,8 @@
 bool png_check_file(const char * filename);
 void png_decode(const char * filename, int & height, int & width, int & components, unsigned char ** & matrix);
 void png_encode();
-void png_encode_grayscale(const char * filename, int height, int width, int components, unsigned char ** & matrix);
+void png_encode_grayscale(const char * filename, int height, int width, unsigned char ** matrix);
+
+const unsigned PNG_NUMBER_COMPONENTS = 4;
 
 #endif

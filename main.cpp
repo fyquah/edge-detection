@@ -8,6 +8,7 @@
 typedef unsigned char byte; 
 using std::cin;
 using std::cout;
+using std::cerr;
 using std::endl;
 
 namespace MASK {
@@ -23,6 +24,11 @@ namespace MASK {
     };
 }
 
+const int FILE_TYPE_PNG = 1;
+const int FILE_TYPE_JPEG = 2;
+const int FILE_TYPE_ERR = -1;
+
+int get_file_type(const char * filename);
 void binarify_edge(unsigned char ** grayscale, const int height, const int width, const int threshold);
 void evaluate_grayscale(std::vector <int **> & image, int height, int width, unsigned char ** & grayscale);
 void find_delta(unsigned char ** image, int height, int width, int ** & gy, int ** & gx);
@@ -40,7 +46,14 @@ int main(int argc, char *argv[])
     std::vector< int ** > vec_gx;
     std::vector< int ** > vec_g;
 
-    jpeg_decode(argv[1], height, width, components_count, image);
+    if(jpeg_check_file(argv[1])){
+        jpeg_decode(argv[1], height, width, components_count, image);
+    } else if(0){
+
+    } else {
+        cerr << "Unrecognized file type!" << endl;
+        return 1;
+    }
 
     // create vector of unsigned chars
     for(int i = 0 ; i < components_count ; i++) {
@@ -92,7 +105,24 @@ int main(int argc, char *argv[])
     // vec_g now contains the magnitude of all deltas
     evaluate_grayscale(vec_g, height, width, grayscale);
     binarify_edge(grayscale, height, width, 250);
-    jpeg_encode_grayscale(argv[2], height, width, grayscale);
+
+    // encode into intended file format
+    int output_file_type = get_file_type(argv[2]);
+    switch(output_file_type) {
+        case FILE_TYPE_PNG:
+
+        break;
+        case FILE_TYPE_JPEG:
+        jpeg_encode_grayscale(argv[2], height, width, grayscale);
+        break;
+
+        default:
+        case FILE_TYPE_ERR:
+        cout << "Unkown output file type! Using default of jpeg" << endl;
+        jpeg_encode_grayscale(argv[2], height, width, grayscale);
+        break;
+    }
+    
 
     // Free the memory space!
     for(int i = 0 ; i < height ; i++) {
@@ -186,4 +216,18 @@ std::pair<int, int> convolute(int y, int x, unsigned char ** pixels){
 
 inline int magnitude(byte gx, byte gy){
     return (byte) sqrt(gx * gx + gy * gy);
+}
+
+int get_file_type(const char * filename){
+    int i;
+    for(i = 0 ; filename[i] ; i++);
+    i--;
+    if((filename[i-3] == 'j' && filename[i-2] == 'p' && filename[i-1] == 'e' && filename[i] == 'g') || 
+        (filename[i-2] == 'j' && filename[i-1] == 'p' && filename[i] == 'g')) {
+        return FILE_TYPE_JPEG;
+    } else if (filename[i-2] == 'p' && filename[i-1] == 'n' && filename[i] == 'g') {
+        return FILE_TYPE_PNG;
+    } else {
+        return FILE_TYPE_ERR;
+    }
 }

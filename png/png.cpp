@@ -33,9 +33,10 @@ void png_encode_grayscale(const char * filename, int height, int width, unsigned
     std::vector<unsigned char> image;
     for(int y = 0 ; y < height ; y++) {
         for(int x = 0 ; x < width ; x++) {
-            for(int i = 0 ; i < PNG_NUMBER_COMPONENTS ;i++) {
+            for(int i = 0 ; i < PNG_NUMBER_COMPONENTS - 1 ;i++) {
                 image.push_back(matrix[y][x]);
             }
+            image.push_back(255);
         }
     }
     unsigned error = lodepng::encode(filename, image, width, height);

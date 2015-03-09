@@ -31,7 +31,10 @@ void jpeg_decode(const char * filename, int & height, int & width, int & compone
     // 4. Parameters for decompression
     // 5. jpeg_start_decompress
     jpeg_start_decompress(&cinfo);
-    
+
+    width = cinfo.output_width;
+    height = cinfo.output_height;
+    components = cinfo.output_components;
     row_stride = cinfo.output_width * cinfo.output_components;
     image = new unsigned char * [cinfo.output_height];
 
@@ -58,9 +61,6 @@ void jpeg_decode(const char * filename, int & height, int & width, int & compone
 
     // set the return values
     matrix = image;
-    width = cinfo.output_width;
-    height = cinfo.output_height;
-    components = cinfo.output_components;
 }
 
 void jpeg_encode(const char * filename, int height, int width, int components, unsigned char ** image) {

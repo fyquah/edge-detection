@@ -13,14 +13,14 @@ using std::endl;
 
 namespace MASK {
     const int x[3][3] = {
-        { -2, 0, 2 },
         { -1, 0, 1 },
-        { -2, 0, 2 }
+        { -2, 0, 2 },
+        { -1, 0, 1 }
     };
     const int y[3][3] = {
-        { -2, -1, -2 },
+        { 1, 2, 1 },
         { 0, 0, 0 },
-        { 2, 1, 2 }
+        { -1, -2, -1 }
     };
 }
 
@@ -33,7 +33,7 @@ void binarify_edge(unsigned char ** grayscale, const int height, const int width
 void evaluate_grayscale(std::vector <int **> & image, int height, int width, unsigned char ** & grayscale);
 void find_delta(unsigned char ** image, int height, int width, int ** & gy, int ** & gx);
 std::pair<int, int> convolute(int y, int x, unsigned char ** image);
-inline int magnitude(byte gx, byte gy);
+inline int magnitude(int gx, int gy);
 
 int main(int argc, char *argv[])
 {
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     // create vector of unsigned chars
     for(int i = 0 ; i < components_count ; i++) {
         unsigned char ** ptr = new unsigned char * [height];
-        for(int i =0 ; i < width ; i++) {
+        for(int i = 0 ; i < height ; i++) {
             ptr[i] = new unsigned char[width];
         }
         image_components.push_back(ptr);
@@ -80,7 +80,6 @@ int main(int argc, char *argv[])
     delete[] image;
     image = NULL;
     // N.B. : image is now undefined!
-
     // Now we get Gx and Gy for every cell (except edge cases)
     for(int i = 0 ; i < components_count ; i++) {
         int ** gy;
@@ -98,6 +97,9 @@ int main(int argc, char *argv[])
 
             for(int x = 0 ; x < width ; x++) {
                 ptr[y][x] = magnitude(vec_gy[c][y][x], vec_gx[c][y][x]);
+                if(ptr[y][x] > 255) {
+                    ptr[y][x] = 255;
+                }
             }
         }
 
@@ -198,7 +200,7 @@ std::pair<int, int> convolute(int y, int x, unsigned char ** pixels){
     gx += MASK::x[0][2] * pixels[y-1][x+1];
     gx += MASK::x[1][0] * pixels[y][x-1];
     gx += MASK::x[1][1] * pixels[y][x];
-    gx += MASK::x[1][2] * pixels[y][x-1];
+    gx += MASK::x[1][2] * pixels[y][x+1];
     gx += MASK::x[2][0] * pixels[y+1][x-1];
     gx += MASK::x[2][1] * pixels[y+1][x];
     gx += MASK::x[2][2] * pixels[y+1][x+1];
@@ -209,7 +211,7 @@ std::pair<int, int> convolute(int y, int x, unsigned char ** pixels){
     gy += MASK::y[0][2] * pixels[y-1][x+1];
     gy += MASK::y[1][0] * pixels[y][x-1];
     gy += MASK::y[1][1] * pixels[y][x];
-    gy += MASK::y[1][2] * pixels[y][x-1];
+    gy += MASK::y[1][2] * pixels[y][x+1];
     gy += MASK::y[2][0] * pixels[y+1][x-1];
     gy += MASK::y[2][1] * pixels[y+1][x];
     gy += MASK::y[2][2] * pixels[y+1][x+1];
@@ -217,8 +219,8 @@ std::pair<int, int> convolute(int y, int x, unsigned char ** pixels){
     return std::make_pair((byte) gy, (byte) gx);
 }
 
-inline int magnitude(byte gx, byte gy){
-    return (byte) sqrt(gx * gx + gy * gy);
+inline int magnitude(int gx, int gy){
+    return sqrt(gx * gx + gy + gy);
 }
 
 int get_file_type(const char * filename){

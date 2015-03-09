@@ -1,19 +1,8 @@
 #include "jpeg.h"
-#include <iostream>
-using namespace std;
 
 bool jpeg_check_file(const char * filename){
-    magic_t cookie = magic_open(MAGIC_NONE);
-    if( magic_error(cookie)) {
-        printf("An error occured:\n");
-        printf("%s\n", magic_error(cookie));
-        return false;
-    }
-    magic_load(cookie, NULL);
-    const char * type = magic_file(cookie, filename);
-    bool flag = tolower(type[0]) == 'j' && tolower(type[1]) == 'p' && tolower(type[2]) == 'e' && tolower(type[3]) == 'g'; 
-    magic_close(cookie);
-    return flag;
+    const char * type = "jpeg";
+    return file_check_type(filename, type);
 }
 
 void jpeg_decode(const char * filename, int & height, int & width, int & components, unsigned char ** & matrix){

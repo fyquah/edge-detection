@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <jpeglib.h>
 #include <magic.h>
+#include "../file/file.h"
 
 bool jpeg_check_file(const char * filename);
 void jpeg_decode(const char * filename, int & height, int & width, int & components, unsigned char ** & matrix);

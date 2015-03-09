@@ -1,4 +1,4 @@
-#include "lodepng/lodepng.h"
+#include "png/png.h"
 #include "jpeg/jpeg.h"
 #include <math.h>
 #include <assert.h>
@@ -48,10 +48,11 @@ int main(int argc, char *argv[])
 
     if(jpeg_check_file(argv[1])){
         jpeg_decode(argv[1], height, width, components_count, image);
-    } else if(0){
-
+    } else if(png_check_file(argv[1])){
+        png_decode(argv[1], height, width, components_count, image);
     } else {
         cerr << "Unrecognized file type!" << endl;
+        cerr << "Terminating now!" << endl;
         return 1;
     }
 
@@ -104,13 +105,13 @@ int main(int argc, char *argv[])
     }
     // vec_g now contains the magnitude of all deltas
     evaluate_grayscale(vec_g, height, width, grayscale);
-    binarify_edge(grayscale, height, width, 250);
+    // binarify_edge(grayscale, height, width, 250);
 
     // encode into intended file format
     int output_file_type = get_file_type(argv[2]);
     switch(output_file_type) {
         case FILE_TYPE_PNG:
-
+        
         break;
         case FILE_TYPE_JPEG:
         jpeg_encode_grayscale(argv[2], height, width, grayscale);

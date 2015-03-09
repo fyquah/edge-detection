@@ -1,4 +1,4 @@
-OBJS = lodepng/lodepng.o jpeg/jpeg.o main.o
+OBJS = file/file.o lodepng/lodepng.o jpeg/jpeg.o png/png.o main.o 
 CXX = g++
 FLAGS = -ansi -pedantic -Wall -Wextra -O3 -ljpeg -std=c++11 -lmagic
 TARGET = ./main

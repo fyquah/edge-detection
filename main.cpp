@@ -216,7 +216,7 @@ std::pair<int, int> convolute(int y, int x, unsigned char ** pixels){
     gy += MASK::y[2][1] * pixels[y+1][x];
     gy += MASK::y[2][2] * pixels[y+1][x+1];
 
-    return std::make_pair((byte) gy, (byte) gx);
+    return std::make_pair(gy, gx);
 }
 
 inline int magnitude(int gx, int gy){
